@@ -1,6 +1,6 @@
 ---
 title: <Hatanın kısa adı>
-date: YYYY-MM-DD
+date: {{date:YYYY-MM-DD}}
 phase: faz-X
 type: hata
 tags: []

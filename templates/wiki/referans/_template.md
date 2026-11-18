@@ -1,6 +1,6 @@
 ---
 title: <Doküman başlığı>
-date: YYYY-MM-DD
+date: {{date:YYYY-MM-DD}}
 phase: faz-X
 type: referans
 tags: []

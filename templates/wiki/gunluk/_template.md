@@ -1,6 +1,6 @@
 ---
 title: <Oturum başlığı>
-date: YYYY-MM-DD
+date: {{date:YYYY-MM-DD}}
 phase: faz-X
 type: gunluk
 tags: []
@@ -8,7 +8,7 @@ related: []
 status: kapandi
 ---
 
-# Oturum Günlüğü — <tarih>
+# Oturum Günlüğü — {{date:YYYY-MM-DD}}
 
 ## Yapılanlar
 - 

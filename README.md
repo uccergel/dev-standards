@@ -15,7 +15,8 @@ ortaklaştırılmış hâlidir. Yeni bir kural önce bir projede denenir, işe y
 | [`standards/workflow.md`](standards/workflow.md) | Çalışma kuralları, iletişim, "bitti" tanımı, git |
 | [`standards/architecture.md`](standards/architecture.md) | Klasör adları, katman kuralları, API sözleşmesi, iOS |
 | [`standards/security.md`](standards/security.md) | Güvenlik kontrol listesi (bereket + vira denetimlerinden) |
-| [`standards/wiki.md`](standards/wiki.md) | Wiki klasörleri, frontmatter, ne zaman ne yazılır |
+| [`standards/wiki.md`](standards/wiki.md) | Wiki klasörleri, daily done, link ve frontmatter kuralları |
+| [`obsidian/`](obsidian/README.md) | Tüm projelerin wiki'lerini tek Obsidian vault'ta toplayan kurulum (macOS + Windows) |
 | [`claude/settings.json`](claude/settings.json) | Projelere kopyalanacak Claude izin ayarları |
 | [`templates/project/CLAUDE.md`](templates/project/CLAUDE.md) | Yeni bir projenin kök `CLAUDE.md` şablonu |
 | [`templates/wiki/`](templates/wiki/) | Wiki klasörleri ve `_template.md` dosyaları |

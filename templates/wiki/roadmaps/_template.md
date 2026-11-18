@@ -1,6 +1,6 @@
 ---
 title: Faz X Planı — <ad>
-date: YYYY-MM-DD
+date: {{date:YYYY-MM-DD}}
 phase: faz-X
 type: roadmap
 tags: []

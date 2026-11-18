@@ -36,6 +36,7 @@ Bir iş ancak şunlar sağlandığında bitmiştir:
 - [ ] Dokunulan alt projenin lint, tip kontrolü ve test komutları temiz (alt `CLAUDE.md`'lerin "Bitirmeden önce" listesi)
 - [ ] API sözleşmesi değiştiyse domain eşleme tablosundaki tüm istemciler güncellendi veya güncellenmeyenler açıkça raporlandı
 - [ ] Kod ile wiki çelişmiyor; oturum günlüğü yazıldı (bkz. `wiki.md`)
+- [ ] `wiki/daily-done/YYYY-MM.md`'ye bu işin tek satırı eklendi (bkz. `wiki.md` → Daily done)
 
 Bir adım atlandıysa (ör. iOS testleri bu ortamda çalıştırılamadı) bunu açıkça söyle;
 "çalışıyor olmalı" deme.

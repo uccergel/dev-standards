@@ -1,6 +1,6 @@
 ---
 title: <Servis adı>
-date: YYYY-MM-DD
+date: {{date:YYYY-MM-DD}}
 phase: faz-X
 type: servis
 tags: []

@@ -1,6 +1,6 @@
 ---
 title: <Script adı>
-date: YYYY-MM-DD
+date: {{date:YYYY-MM-DD}}
 phase: faz-X
 type: script
 tags: []
