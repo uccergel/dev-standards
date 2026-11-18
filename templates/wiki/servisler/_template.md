@@ -8,7 +8,7 @@ related: []
 status: guncel
 ---
 
-# <servis_modulu> (backend/portfolio/services/<dosya>.py)
+# <servis_modulu> (backend/<app>/services/<dosya>.py)
 
 ## Sorumluluk
 <Bu servis neyi hesaplar/yönetir? Neyi YAPMAZ?>
