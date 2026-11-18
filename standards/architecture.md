@@ -8,8 +8,9 @@ Birden fazla parçası olan her uygulama tek repoda (monorepo) durur ve şu adla
 <proje>/
 ├── backend/            # API sunucusu (Django + DRF varsayılan)
 ├── web/                # Web istemcisi
-├── mobile/             # Expo / React Native istemcisi
+├── mobile/             # Çapraz platform mobil istemci (Expo / React Native)
 ├── ios/                # Native iOS istemcisi (Swift + SwiftUI)
+├── android/            # Native Android istemcisi (Kotlin + Jetpack Compose)
 ├── packages/
 │   └── shared/         # TS istemcilerin ortak kodu: API tipleri, zod şemaları, queryKeys, api-core
 ├── deploy/             # Dockerfile'lar, reverse proxy (Caddy/nginx) ayarları, yedekleme script'leri
@@ -23,7 +24,18 @@ Birden fazla parçası olan her uygulama tek repoda (monorepo) durur ve şu adla
 └── README.md
 ```
 
-- Olmayan parça için klasör açılmaz (ör. yalnızca web olan bir projede `mobile/` yok).
+- Olmayan parça için klasör açılmaz (ör. yalnızca web olan bir projede `mobile/` yok,
+  native Android istemcisi yazılmadıkça `android/` yok).
+- **Mobil adlandırma kuralı:** klasör adı istemcinin *hangi platform için, hangi dille*
+  yazıldığını söyler.
+  - `mobile/`: tek kod tabanı, birden fazla platform (Expo/React Native; ileride Flutter
+    olursa o da). Expo'nun `prebuild` ile ürettiği `mobile/ios/` ve `mobile/android/`
+    klasörleri bu klasörün **içinde** kalır ve gitignore'ludur (Continuous Native Generation);
+    kök `ios/` ve `android/` ile karışmaz.
+  - `ios/`: yalnızca Swift ile yazılmış native iOS uygulaması.
+  - `android/`: yalnızca Kotlin ile yazılmış native Android uygulaması.
+  - Aynı projede `mobile/` ile `ios/` yan yana durabilir (bereket örneği: Expo ve native iOS
+    birlikte). Bu durumda hangisinin asıl istemci olduğu projenin wiki'sinde yazılır.
 - Klasör adları İngilizce ve küçük harf; Türkçe karakter ve boşluk yok.
 - Her alt projenin kendi `CLAUDE.md`'si olur: yalnızca o klasöre özgü yapı, kural, komut ve
   "Bitirmeden önce" listesi. Repo geneli kurallar kök `CLAUDE.md`'de kalır.
