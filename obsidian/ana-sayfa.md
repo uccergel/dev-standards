@@ -27,16 +27,16 @@ LIMIT 40
 ## Son oturum günlükleri
 
 Klasöre göre seçer; böylece standart frontmatter'ı (`title`, `date`) ve vira'nın Türkçe
-şemasını (`baslik`, `tarih`) birlikte gösterir.
+şemasını (`baslik`, `tarih`), kitabe'nin `created` alanını birlikte gösterir.
 
 ```dataview
 TABLE WITHOUT ID
   link(file.path, default(title, default(baslik, file.name))) AS Günlük,
   split(file.folder, "/")[0] AS Proje,
-  default(date, tarih) AS Tarih
+  default(date, default(tarih, created)) AS Tarih
 FROM ""
-WHERE contains(file.folder, "gunluk") AND !contains(file.name, "_template")
-SORT default(date, tarih) DESC
+WHERE contains(file.folder, "gunluk") AND !contains(file.name, "_template") AND file.name != "README"
+SORT default(date, default(tarih, created)) DESC
 LIMIT 20
 ```
 
