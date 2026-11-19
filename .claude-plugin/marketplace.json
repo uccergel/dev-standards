@@ -1,0 +1,16 @@
+{
+  "name": "uccergel",
+  "owner": {
+    "name": "uccergel"
+  },
+  "metadata": {
+    "description": "Kişisel projelerin ortak geliştirme standartları ve iş akışı skill'leri."
+  },
+  "plugins": [
+    {
+      "name": "dev-standards",
+      "source": "./plugin",
+      "description": "Yeni proje kurma, mevcut projeyi standartlara bağlama, daily done kaydı ve güvenlik taraması skill'leri."
+    }
+  ]
+}

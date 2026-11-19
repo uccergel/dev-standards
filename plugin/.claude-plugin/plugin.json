@@ -1,0 +1,10 @@
+{
+  "name": "dev-standards",
+  "version": "0.1.0",
+  "description": "uccergel/dev-standards iş akışları: /yeni-proje, /standartlara-bagla, /daily-done, /guvenlik-taramasi. Kuralların kendisi her projede docs/standards/ (git submodule) altındadır.",
+  "author": {
+    "name": "uccergel"
+  },
+  "repository": "https://github.com/uccergel/dev-standards",
+  "license": "UNLICENSED"
+}

@@ -27,5 +27,16 @@
       "Bash(npx prisma migrate:*)",
       "Bash(docker compose down:*)"
     ]
+  },
+  "extraKnownMarketplaces": {
+    "uccergel": {
+      "source": {
+        "source": "github",
+        "repo": "uccergel/dev-standards"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "dev-standards@uccergel": true
   }
 }
