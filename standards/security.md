@@ -78,6 +78,8 @@ tablosu** olur; bulgunun güncel durumu orada yazılır, dağınık notlarda de�
 ## Loglama ve kurtarma
 - [ ] Güvenlik olayları ayrı bir logger'a yazılıyor: başarısız login, throttle (`429`), yetki reddi. (G-09)
 - [ ] Veritabanı yedeği otomatik alınıyor ve **geri yükleme en az bir kez denendi**. (G-12)
+      Hazır script'ler: `scripts/pg-backup.sh` (gece) ve `scripts/pg-restore-test.sh`
+      (haftalık geri yükleme denemesi); sonucu dash'e bildirir. Kurulum: `scripts/README.md`.
 
 ## Mobil ve iOS
 - [ ] Token'lar Keychain / SecureStore'da; erişim sınıfı `AfterFirstUnlockThisDeviceOnly` gibi cihaza bağlı. (G-13)
