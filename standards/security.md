@@ -8,6 +8,28 @@ uyulmayan madde varsa projenin wiki'sinde gerekçesiyle yazılır.
 Bir değişiklik aşağıdaki alanlardan birine dokunuyorsa (auth, ayarlar, deploy, bağımlılık,
 dosya yükleme) ilgili maddeleri değişiklikten sonra yeniden kontrol et.
 
+## Denetim belgesi
+
+Bir projenin güvenlik denetimi `wiki/referans/guvenlik-denetimi.md`'de tutulur (mevcut
+projelerde kökteki `security_error.md` de kabul edilir). Belgenin başında **tek bir özet
+tablosu** olur; bulgunun güncel durumu orada yazılır, dağınık notlarda değil:
+
+```markdown
+| #    | Önem      | Bulgu                                   | Durum                          |
+|------|-----------|-----------------------------------------|--------------------------------|
+| G-01 | 🔴 Kritik | `SECRET_KEY` prod'da varsayılana düşüyor | ✅ Düzeltildi                  |
+| G-06 | 🟠 Orta   | SPA'da CSP yok                           | 🟡 Kısmen: CSP Report-Only     |
+| G-11 | 🟡 Düşük  | İmajlar sabit sürümde değil              | ⏳ Açık                        |
+| G-16 | ⚪ Bilgi  | Banner sürüm sızdırıyor                  | ➖ Kabul edildi: gerekçe       |
+```
+
+- İlk sütun bulgu kimliği (`G-01`, `Y-2`…): harf öneki + numara, belge içinde tekil.
+- `Durum` değerleri: `✅ Düzeltildi` · `🟡 Kısmen: <ne kaldı>` · `⏳ Açık` ·
+  `➖ Kabul edildi: <gerekçe>`. Kısmi ve kabul edilen durumda kalan iş / gerekçe yazılır.
+- Bulgu kapandığında yalnızca bu hücre güncellenir; ayrıntı aşağıdaki bölümünde kalır.
+- Bu biçim makinece okunur: dash (`dash.uccergel.com`) açık ve kısmi bulguları öneri
+  olarak gösterir; `Durum` sütunu olmayan tablo okunmaz.
+
 ## Secret yönetimi
 - [ ] `.env`, `.env.*` (`.env.example` hariç) ve `Local.xcconfig` `.gitignore`'da.
 - [ ] Her secret için commit'lenmiş bir örnek var (`.env.example`), değer olarak yer tutucu.
