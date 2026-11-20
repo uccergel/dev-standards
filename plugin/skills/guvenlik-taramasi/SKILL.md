@@ -52,4 +52,7 @@ olanlar hâlâ açık mı.
 3. **Doğrulanamayanlar** ve kullanıcının kontrol etmesi gerekenler (Dokploy env'i, canlı
    başlıklar, yedek).
 4. Kullanıcıya sor: rapor wiki'ye yazılsın mı (projede denetim belgesi varsa onu güncelle,
-   yoksa `wiki/referans/guvenlik-denetimi.md`), hangi bulgular düzeltilsin.
+   yoksa `wiki/referans/guvenlik-denetimi.md`), hangi bulgular düzeltilsin. Wiki'ye
+   yazarken özet tablosu `standards/security.md` → "Denetim belgesi" biçiminde olur
+   (kimlik · önem · bulgu · `Durum`); mevcut belgede `Durum` sütunu yoksa ekle ve her
+   bulgunun durumunu belgedeki kanıttan doldur, tahmin etme.
