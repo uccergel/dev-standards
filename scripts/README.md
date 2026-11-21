@@ -1,4 +1,9 @@
-# Yedek script'leri
+# Sunucu script'leri
+
+İki iş: veritabanı **yedekleri** (aşağıda) ve **sunucu kaynak raporu**
+([Sunucu raporu](#sunucu-raporu)). İkisi de sonucu dash'e bildirir; dash sunucuya bağlanmaz.
+
+## Yedekler
 
 Docker Compose ile çalışan bir uygulamanın PostgreSQL'ini yedekler, yedeğin gerçekten
 geri yüklenebildiğini haftada bir dener ve sonuçları **dash**'e (`dash.uccergel.com`)
@@ -14,7 +19,7 @@ Güvenlik listesi: `standards/security.md` → "Loglama ve kurtarma" (G-12).
 **hangi adımın** düştüğünü söyler; ham hata çıktısı (bağlantı dizesi vb.) sunucudan çıkmaz,
 cron loguna yazılır.
 
-## Kurulum (sunucuda, uygulama başına bir kez)
+### Kurulum (sunucuda, uygulama başına bir kez)
 
 1. **Script'ler** (tüm uygulamalar için bir kez):
 
@@ -82,7 +87,7 @@ cron loguna yazılır.
    Her uygulama için aynı iki satır, kendi `.env` dosyasıyla. Saatleri birkaç dakika kaydır
    (üçü aynı anda çalışmasın).
 
-## dash'in uyarıları
+### dash'in uyarıları
 
 | Durum | dash'te | Telegram |
 |-------|---------|----------|
@@ -90,7 +95,7 @@ cron loguna yazılır.
 | 26 saattir başarılı yedek yok | yüksek öneri | günde bir |
 | Geri yükleme hiç denenmedi / 8 günden eski / başarısız | orta öneri | günlük özette |
 
-## Elle geri yükleme (gerçek kurtarma)
+### Elle geri yükleme (gerçek kurtarma)
 
 Önce uygulamayı durdur (yazma olmasın), sonra boş bir veritabanına:
 
@@ -100,7 +105,7 @@ gunzip -c /var/backups/lectio/lectio-YYYYMMDD-HHMMSS.sql.gz | docker exec -i <db
 
 Yedek `--no-owner --no-privileges` ile alınır: hedefteki kullanıcıya göre geri yüklenir.
 
-## Dikkat
+### Dikkat
 
 - **Aynı sunucudaki yedek, sunucunun kaybına karşı korumaz.** `RCLONE_REMOTE` ile sunucu
   dışına kopyala; hedefte şifreli depolama (rclone `crypt`) kullan.
@@ -110,3 +115,76 @@ Yedek `--no-owner --no-privileges` ile alınır: hedefteki kullanıcıya göre g
   ile açılır ve iş bitince (hata olsa bile) silinir. İmajı, uygulamanın db konteyneriyle aynıdır.
 - dash'e bildirim düşerse yedeğin sonucu değişmez; cron loguna uyarı yazılır. Token komut
   satırına değil curl'ün stdin'ine verilir (`ps` çıktısında görünmez).
+
+## Sunucu raporu
+
+`server-report.sh` 5 dakikada bir CPU, RAM, swap, disk, çalışma süresi ve konteyner başına
+CPU/RAM kullanımını okur ve dash'e gönderir (`POST /api/server/report`). Yalnızca `/proc`,
+`df` ve `docker stats` okur; hiçbir şeyi değiştirmez. dash'te **Sunucu** sayfasında görünür.
+
+**Neden Hostinger API'si değil:** Hostinger'ın API token'ı kısıtlanamıyor (hesabın tüm
+yetkileri: sunucuyu silmek, root parolası, firewall). Grafik için o yetkiyi dash'e vermek
+yerine sunucu kendi raporunu gönderir; dash'teki token yalnızca rapor yazabilir.
+
+### Kurulum (sunucuda bir kez)
+
+1. Script'ler `/opt/dev-standards`'ta (yedek kurulumunun 1. adımı).
+2. **dash'te token:** Sunucu → "Sunucu ekle". Gösterilen iki satır ortam dosyasına gider;
+   token **yalnızca bir kez** gösterilir.
+3. **Ortam dosyası** (yalnızca root okusun):
+
+   ```bash
+   sudo install -d -m 700 /etc/dash-server
+   ```
+
+   ```bash
+   sudo install -m 600 /dev/null /etc/dash-server/server.env
+   ```
+
+   İçeriği:
+
+   ```bash
+   DASH_URL=https://dash.uccergel.com
+   DASH_SERVER_TOKEN=dsr_…
+   # DISK_PATH=/          (izlenen dosya sistemi)
+   # CPU_SAMPLE_SEC=3     (CPU ölçüm süresi)
+   ```
+
+4. **Önce göndermeden dene** (JSON'u yazdırır):
+
+   ```bash
+   sudo /opt/dev-standards/scripts/server-report.sh --print /etc/dash-server/server.env
+   ```
+
+   Sonra gerçekten gönder; dash'te Sunucu sayfası birkaç saniyede dolmalı:
+
+   ```bash
+   sudo /opt/dev-standards/scripts/server-report.sh /etc/dash-server/server.env
+   ```
+
+5. **Cron** (`sudo crontab -e`):
+
+   ```
+   */5 * * * * /opt/dev-standards/scripts/server-report.sh /etc/dash-server/server.env >> /var/log/dash-server.log 2>&1
+   ```
+
+Root'tan çalışması gerekmez; ancak `docker stats` için kullanıcının `docker` grubunda
+olması gerekir (o grup pratikte root yetkisi demektir). Root cron'u en basit yol.
+
+### dash'in kuralları
+
+| Durum | dash'te | Telegram |
+|-------|---------|----------|
+| 15 dakikadır rapor yok | yüksek öneri | günde bir (sessiz saatlerde ertelenir) |
+| Disk ≥ %90 / ≥ %85 | yüksek / orta öneri | ≥ %90'da günde bir |
+| RAM ya da CPU 15 dakika boyunca her raporda ≥ %90 | orta öneri | günlük özette |
+| Sunucu son 24 saatte yeniden başladı | düşük (bilgi) | — |
+
+RAM doluluğu `MemAvailable`'a göre hesaplanır (Linux boş belleği önbellek için kullanır).
+Raporlar 30 gün tutulur.
+
+### Bilinen sınır
+
+dash aynı VPS'te çalışıyor. **Sunucunun tamamı düşerse dash de düşer** ve uyarı gönderemez;
+"rapor gelmiyor" kuralı yalnızca script'in durduğu, sunucunun ayakta olduğu durumu yakalar.
+Tüm sunucunun kaybı için dışarıdan bir yoklama gerekir (bkz. dash yol haritası).
