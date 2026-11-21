@@ -11,9 +11,13 @@
 #   DASH_SERVER_TOKEN  dash → Sunucu → "Sunucu ekle" ile verilen token (dsr_…)
 #   DISK_PATH          izlenen dosya sistemi (varsayılan /)
 #   CPU_SAMPLE_SEC     CPU ölçüm süresi, saniye (varsayılan 3)
+#   APP_LOGS           giriş olayları sayılacak uygulamalar (isteğe bağlı), boşlukla ayrılmış
+#                      "<dash-slug>=<compose-proje>:<servis>" (ör. "lectio=lectio-ab12:app")
+#   STATE_DIR          son log okuma anının tutulduğu klasör (varsayılan /var/lib/dash-server)
 #
-# Yalnızca /proc, df ve `docker stats` okur; hiçbir şey değiştirmez. Root gerekmez,
-# ama docker grubunda olmayan kullanıcıyla konteyner bilgisi gelmez.
+# Yalnızca /proc, df, `docker stats` ve `docker logs` okur; sunucuda yalnızca kendi durum
+# dosyasını yazar. Root gerekmez, ama docker grubunda olmayan kullanıcıyla konteyner
+# bilgisi ve giriş sayıları gelmez.
 set -euo pipefail
 
 PRINT=0
@@ -33,6 +37,7 @@ if [ -n "${1:-}" ]; then
 fi
 DISK_PATH="${DISK_PATH:-/}"
 CPU_SAMPLE_SEC="${CPU_SAMPLE_SEC:-3}"
+STATE_DIR="${STATE_DIR:-/var/lib/dash-server}"
 
 log() { echo "$(date -Iseconds) [server-report] $*" >&2; }
 
@@ -77,10 +82,82 @@ if command -v docker >/dev/null 2>&1; then
   fi
 fi
 
-body="$(printf '{"cpuPct":%s,"cpuCount":%s,"load":[%s,%s,%s],"memTotalBytes":%s,"memAvailableBytes":%s,"swapTotalBytes":%s,"swapFreeBytes":%s,"diskPath":"%s","diskTotalBytes":%s,"diskUsedBytes":%s,"uptimeSec":%s,"containers":%s}' \
+# Giriş olayları (APP_LOGS doluysa): her uygulamanın konteyner loglarında son rapordan
+# bu yana yazılan güvenlik olayları sayılır. dash'e yalnızca sayılar gider; kullanıcı
+# adı, IP ve ham log sunucudan çıkmaz. Son okuma anı STATE_DIR'de tutulur ve yalnızca
+# rapor dash'e ulaşınca ilerletilir: gönderim düşerse aynı aralık bir sonraki çalışmada
+# yeniden sayılır, olay kaybolmaz.
+#
+# Olay adı yalnızca SABİT KONUMDAN okunur; kullanıcının yazdığı metin (kullanıcı adı)
+# satırın daha sonraki alanlarında durur ve sayımı taklit edemez.
+#   Node (Lectio, dash):  <ts> [security] <olay> {...}
+#   Django (Bereket):     <ts> <tarih> <saat> <SEVİYE> bereket.security <olay> ...
+COUNT_AWK='
+{
+  ev = ""
+  if ($2 == "[security]") ev = $3
+  else if ($5 == "bereket.security") ev = $6
+  if (ev == "login_ok") { ok++; last = $1 }
+  else if (ev == "login_failed") failed++
+  else if (ev == "login_locked") locked++
+  else if (ev == "login_denied") denied++
+  else if (ev == "throttled") throttled++
+}
+END { printf "%d %d %d %d %d %s\n", ok, failed, locked, denied, throttled, (last == "" ? "-" : last) }'
+
+logins="[]"
+logs_until=""
+if [ -n "${APP_LOGS:-}" ] && command -v docker >/dev/null 2>&1; then
+  logs_until="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  since=""
+  [ -r "$STATE_DIR/logs-since" ] && since="$(cat "$STATE_DIR/logs-since")"
+  # İlk çalışmada, bozuk ya da bir günden eski durumda son 5 dakika.
+  if ! since_s="$(date -u -d "$since" +%s 2>/dev/null)" || [ -z "$since" ] \
+      || [ "$since_s" -lt "$(( $(date -u +%s) - 86400 ))" ]; then
+    since="$(date -u -d '5 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"
+  fi
+  items=()
+  for entry in $APP_LOGS; do
+    slug="${entry%%=*}"
+    target="${entry#*=}"
+    project="${target%%:*}"
+    service="${target#*:}"
+    case "$slug" in ''|*[!a-z0-9-]*) log "UYARI: APP_LOGS girdisi geçersiz: $entry"; continue ;; esac
+    if [ "$target" = "$entry" ] || [ "$service" = "$target" ]; then
+      log "UYARI: APP_LOGS girdisi <slug>=<proje>:<servis> biçiminde olmalı: $entry"
+      continue
+    fi
+    ids="$(docker ps -q \
+      --filter "label=com.docker.compose.project=$project" \
+      --filter "label=com.docker.compose.service=$service" 2>/dev/null || true)"
+    count="$(printf '%s' "$ids" | grep -c . || true)"
+    if [ "$count" -ne 1 ]; then
+      log "UYARI: $slug için konteyner bulunamadı ya da birden çok ($count): $project:$service"
+      continue
+    fi
+    if ! read -r ok failed locked denied throttled last < <(
+        timeout 30 docker logs --timestamps --since "$since" --until "$logs_until" "$ids" 2>&1 | awk "$COUNT_AWK"); then
+      log "UYARI: $slug logları okunamadı"
+      continue
+    fi
+    last_json="null"
+    if [ "$last" != "-" ]; then
+      # docker zaman damgası nanosaniyeli (…:06.123456789Z): saniyeye kısaltılır.
+      t="${last%%.*}"
+      last_json="\"${t%Z}Z\""
+    fi
+    items+=("$(printf '{"app":"%s","ok":%s,"failed":%s,"locked":%s,"denied":%s,"throttled":%s,"lastOkAt":%s}' \
+      "$slug" "$ok" "$failed" "$locked" "$denied" "$throttled" "$last_json")")
+  done
+  if [ "${#items[@]}" -gt 0 ]; then
+    logins="[$(IFS=,; echo "${items[*]}")]"
+  fi
+fi
+
+body="$(printf '{"cpuPct":%s,"cpuCount":%s,"load":[%s,%s,%s],"memTotalBytes":%s,"memAvailableBytes":%s,"swapTotalBytes":%s,"swapFreeBytes":%s,"diskPath":"%s","diskTotalBytes":%s,"diskUsedBytes":%s,"uptimeSec":%s,"containers":%s,"logins":%s}' \
   "$cpu_pct" "$cpu_count" "$load1" "$load5" "$load15" \
   "$mem_total" "$mem_avail" "$swap_total" "$swap_free" \
-  "$(json_str "$DISK_PATH")" "$disk_total" "$disk_used" "$uptime_sec" "$containers")"
+  "$(json_str "$DISK_PATH")" "$disk_total" "$disk_used" "$uptime_sec" "$containers" "$logins")"
 
 if [ "$PRINT" = 1 ]; then
   printf '%s\n' "$body"
@@ -95,4 +172,10 @@ if ! printf 'Authorization: Bearer %s\n' "$DASH_SERVER_TOKEN" | curl -sS --max-t
     "${DASH_URL%/}/api/server/report" >/dev/null; then
   log "UYARI: rapor dash'e gönderilemedi"
   exit 1
+fi
+
+# Rapor ulaştı: log sayımı bir sonraki çalışmada buradan devam etsin.
+if [ -n "$logs_until" ]; then
+  (umask 077 && mkdir -p "$STATE_DIR" && printf '%s\n' "$logs_until" > "$STATE_DIR/logs-since") \
+    || log "UYARI: durum dosyası yazılamadı: $STATE_DIR/logs-since"
 fi
