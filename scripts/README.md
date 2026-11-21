@@ -119,8 +119,10 @@ Yedek `--no-owner --no-privileges` ile alınır: hedefteki kullanıcıya göre g
 ## Sunucu raporu
 
 `server-report.sh` 5 dakikada bir CPU, RAM, swap, disk, çalışma süresi ve konteyner başına
-CPU/RAM kullanımını okur ve dash'e gönderir (`POST /api/server/report`). Yalnızca `/proc`,
-`df` ve `docker stats` okur; hiçbir şeyi değiştirmez. dash'te **Sunucu** sayfasında görünür.
+CPU/RAM kullanımını okur ve dash'e gönderir (`POST /api/server/report`). `APP_LOGS` doluysa
+uygulamaların konteyner loglarındaki **giriş olaylarını** da sayar (aşağıda). `/proc`, `df`,
+`docker stats` ve `docker logs` okur; sunucuda yalnızca kendi durum dosyasını yazar. dash'te
+**Sunucu** sayfasında ve uygulamanın **Girişler** bölümünde görünür.
 
 **Neden Hostinger API'si değil:** Hostinger'ın API token'ı kısıtlanamıyor (hesabın tüm
 yetkileri: sunucuyu silmek, root parolası, firewall). Grafik için o yetkiyi dash'e vermek
@@ -148,6 +150,16 @@ yerine sunucu kendi raporunu gönderir; dash'teki token yalnızca rapor yazabili
    DASH_SERVER_TOKEN=dsr_…
    # DISK_PATH=/          (izlenen dosya sistemi)
    # CPU_SAMPLE_SEC=3     (CPU ölçüm süresi)
+   # Giriş sayıları (isteğe bağlı): <dash-slug>=<compose-proje>:<servis>, boşlukla ayrılmış
+   APP_LOGS="lectio=lectio-ab12cd:app bereket=bereket-ef34gh:backend dash=dash-ij56kl:app"
+   # STATE_DIR=/var/lib/dash-server   (son log okuma anı)
+   ```
+
+   `<dash-slug>` dash'teki uygulamanın kısa adı (adres çubuğundaki `/apps/<slug>`).
+   Proje ve servis adlarını görmek için:
+
+   ```bash
+   docker ps --format '{{.Names}}\t{{.Label "com.docker.compose.project"}}\t{{.Label "com.docker.compose.service"}}'
    ```
 
 4. **Önce göndermeden dene** (JSON'u yazdırır):
@@ -171,6 +183,29 @@ yerine sunucu kendi raporunu gönderir; dash'teki token yalnızca rapor yazabili
 Root'tan çalışması gerekmez; ancak `docker stats` için kullanıcının `docker` grubunda
 olması gerekir (o grup pratikte root yetkisi demektir). Root cron'u en basit yol.
 
+### Giriş sayıları (`APP_LOGS`)
+
+Script her çalışmada `APP_LOGS`'taki her uygulamanın konteynerini (compose etiketleriyle,
+**tam bir** tane) bulur ve son rapordan bu yana yazdığı logdaki güvenlik olaylarını sayar:
+
+| Olay | Kim yazar |
+|------|-----------|
+| `login_ok` / `login_failed` | Lectio (`[security] …`), Bereket (`bereket.security …`), dash (`login_ok`) |
+| `login_locked` | Bereket: kullanıcı adı başına başarısız deneme sınırı doldu |
+| `login_denied` | dash: GitHub girişi doğru ama izin listesinde değil |
+| `throttled` | hepsi: hız sınırı aşıldı (`429`) |
+
+- dash'e **yalnızca sayılar** ve son başarılı girişin zamanı gider; kullanıcı adı, IP ve ham
+  log sunucudan çıkmaz.
+- Olay adı satırdaki **sabit konumdan** okunur; kullanıcı adına `login_ok` yazmak sayımı
+  değiştirmez.
+- Son okuma anı `STATE_DIR/logs-since`'ta tutulur ve **yalnızca rapor dash'e ulaşınca**
+  ilerler: gönderim düşerse aynı aralık bir sonraki çalışmada yeniden sayılır. İlk
+  çalışmada ya da durum bir günden eskiyse son 5 dakikaya bakılır. `--print` durumu
+  değiştirmez.
+- Konteyner bulunamazsa (ya da birden çok bulunursa) o uygulama atlanır, cron loguna
+  uyarı düşer; rapor yine gider.
+
 ### dash'in kuralları
 
 | Durum | dash'te | Telegram |
@@ -179,9 +214,11 @@ olması gerekir (o grup pratikte root yetkisi demektir). Root cron'u en basit yo
 | Disk ≥ %90 / ≥ %85 | yüksek / orta öneri | ≥ %90'da günde bir |
 | RAM ya da CPU 15 dakika boyunca her raporda ≥ %90 | orta öneri | günlük özette |
 | Sunucu son 24 saatte yeniden başladı | düşük (bilgi) | — |
+| Bir uygulamada son 2 saatte ≥ 20 başarısız giriş | orta öneri | günlük özette |
+| Bir uygulamada son 2 saatte hesap kilidi (`login_locked`) | orta öneri | günlük özette |
 
 RAM doluluğu `MemAvailable`'a göre hesaplanır (Linux boş belleği önbellek için kullanır).
-Raporlar 30 gün tutulur.
+Raporlar ve giriş sayıları 30 gün tutulur.
 
 ### Bilinen sınır
 
