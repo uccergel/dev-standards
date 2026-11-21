@@ -24,6 +24,22 @@ SORT meta(L.section).subpath DESC, L.text DESC
 LIMIT 40
 ```
 
+## Açık yol haritası maddeleri
+
+Her projenin `wiki/roadmaps/` dosyalarındaki işaretlenmemiş `- [ ]` maddeleri, projeye
+göre gruplu. Şablonlar (`_template`) ve `status: arsiv` olan planlar listelenmez.
+Kutuyu burada işaretlersen değişiklik doğrudan ilgili roadmap dosyasına yazılır.
+
+```dataview
+TASK
+FROM ""
+WHERE !completed
+  AND contains(file.folder, "roadmaps")
+  AND !contains(file.name, "_template")
+  AND default(file.frontmatter.status, "") != "arsiv"
+GROUP BY split(file.folder, "/")[0] AS Proje
+```
+
 ## Son oturum günlükleri
 
 Klasöre göre seçer; böylece standart frontmatter'ı (`title`, `date`) ve vira'nın Türkçe

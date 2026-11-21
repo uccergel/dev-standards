@@ -39,6 +39,9 @@ Script'i tekrar çalıştırmak güvenlidir: var olan bağlantılara ve dosyalar
 Yeni bir repo klonladığında yeniden çalıştırman yeterli. Henüz `wiki/` klasörü olmayan
 repolar atlanır.
 
+`ana-sayfa.md` yalnızca vault'ta yoksa kopyalanır. Bu repodaki sürüm güncellendiyse
+vault'taki kopyayı sil ve script'i yeniden çalıştır (ya da değişen bölümü elle kopyala).
+
 ## 2. Obsidian'da aç
 
 Obsidian → **Open folder as vault** → `~/Obsidian/dev` (Windows: `%USERPROFILE%\Obsidian\dev`).
